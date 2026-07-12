@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [assets, setAssets] = useState([]);
-  const [tickets, setTickets] = useState([]); // New Maintenance State
+  const [tickets, setTickets] = useState([]); // Maintenance State
   const [error, setError] = useState('');
   const [audits, setAudits] = useState([]);
   const [selectedAudit, setSelectedAudit] = useState(null);
@@ -12,7 +12,7 @@ function App() {
 
   const [allocationForm, setAllocationForm] = useState({ asset_id: '', employee_id: '', expected_return_date: '' });
   const [bookingForm, setBookingForm] = useState({ asset_id: '', employee_id: '', start_time: '', end_time: '' });
-  const [maintenanceForm, setMaintenanceForm] = useState({ asset_id: '', description: '', priority: 'Medium' }); // New State
+  const [maintenanceForm, setMaintenanceForm] = useState({ asset_id: '', description: '', priority: 'Medium' });
 
   useEffect(() => {
     // Fetch Assets
@@ -37,15 +37,18 @@ function App() {
       .then((data) => setTickets(data))
       .catch(() => console.log("Offline mode: maintenance server unavailable"));
 
+    // Fetch Analytical Trends
     fetch('http://127.0.0.1:8000/api/reports/summary')
       .then((res) => res.json())
       .then((data) => setAnalytics(data))
       .catch(() => console.log("Offline mode: analytics summary unavailable"));
 
+    // Fetch System Logs
     fetch('http://127.0.0.1:8000/api/notifications')
       .then((res) => res.json())
       .then((data) => setNotifications(data))
       .catch(() => console.log("Offline mode: activity logs unavailable"));
+
     // Fetch Active Audit Sweep Cycles
     fetch('http://127.0.0.1:8000/api/audits')
       .then((res) => res.json())
@@ -149,6 +152,23 @@ function App() {
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Real-time resource allocation and health analytics metrics.</p>
             </div>
 
+            {/* LIVE AUTOMATED AUDIT TRAIL BANNER (Fixed Placement) */}
+            <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontSize: '1.1rem', fontWeight: '700' }}>🔔 Live Audit Trail & Activity Logs[cite: 3]</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {notifications.length === 0 ? (
+                  <p style={{ color: '#64748b', margin: 0, fontSize: '0.9rem', fontStyle: 'italic' }}>System listening for operational network activities...[cite: 3]</p>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.9rem', color: '#334155', borderLeft: '4px solid #a26b93' }}>
+                      <span style={{ fontWeight: '600', minWidth: '70px', color: '#64748b' }}>{n.timestamp}</span>
+                      <span>{n.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.75rem', marginBottom: '3rem' }}>
               <div style={{ backgroundColor: 'white', padding: '1.75rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '1.5rem' }}>📦</span>
@@ -172,19 +192,6 @@ function App() {
             <div style={{ marginBottom: '2.5rem' }}>
               <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a', margin: '0 0 0.25rem 0', letterSpacing: '-0.5px' }}>Enterprise Asset Registry</h1>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Detailed tracking ledger of all company property hardware.</p>
-            </div>
-
-            {/* LIVE AUTOMATED AUDIT TRAIL BANNER */}
-            <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontSize: '1.1rem', fontWeight: '700' }}>🔔 Live Audit Trail & Activity Logs[cite: 3]</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {notifications.map(n => (
-                  <div key={n.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.9rem', color: '#334155', borderLeft: '4px solid #a26b93' }}>
-                    <span style={{ fontWeight: '600', minWidth: '70px', color: '#64748b' }}>{n.timestamp}</span>
-                    <span>{n.message}</span>
-                  </div>
-                ))}
-              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
