@@ -168,3 +168,103 @@ def book_resource(req: BookingRequest):
 @app.get("/api/assets")
 def get_assets():
     return ASSETS_DB
+
+# --- STEP 1.1: ADD THE MOCK DATABASE STORAGE FOR REQUESTS ---
+# Add this right next to where your BOOKINGS_DB = [] is located
+MAINTENANCE_DB = []
+
+# --- STEP 1.2: ADD THE ENDPOINTS TO THE BOTTOM OF THE FILE ---
+
+@app.post("/api/maintenance/request")
+def raise_maintenance(req: MaintenanceRequest):
+    """Allows employees to log equipment faults."""
+    target_asset = next((a for a in ASSETS_DB if a["id"] == req.asset_id), None)
+    if not target_asset:
+        raise HTTPException(status_code=404, detail="Asset target not found")
+        
+    new_request = {
+        "id": len(MAINTENANCE_DB) + 1,
+        "asset_id": req.asset_id,
+        "asset_tag": target_asset["tag"],
+        "asset_name": target_asset["name"],
+        "description": req.description,
+        "priority": req.priority,
+        "status": "Pending" # Flow: Pending -> Approved -> Resolved
+    }
+    MAINTENANCE_DB.append(new_request)
+    return {"status": "Success", "maintenance": new_request}
+
+@app.post("/api/maintenance/{ticket_id}/approve")
+def approve_maintenance(ticket_id: int):
+    """Asset Manager approves repair. Flips asset state automatically."""
+    ticket = next((m for m in MAINTENANCE_DB if m["id"] == ticket_id), None)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+        
+    ticket["status"] = "Approved"
+    
+    # Core ERP Transition rule: Lock down asset status
+    for asset in ASSETS_DB:
+        if asset["id"] == ticket["asset_id"]:
+            asset["status"] = "Under Maintenance"
+            
+    return {"status": "Success", "ticket": ticket}
+
+@app.post("/api/maintenance/{ticket_id}/resolve")
+def resolve_maintenance(ticket_id: int):
+    """Technician marks fix completed. Restores asset back to inventory pools."""
+    ticket = next((m for m in MAINTENANCE_DB if m["id"] == ticket_id), None)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+        
+    ticket["status"] = "Resolved"
+    
+    # Core ERP Transition rule: Release asset back to work pool
+    for asset in ASSETS_DB:
+        if asset["id"] == ticket["asset_id"]:
+            asset["status"] = "Available"
+            
+    return {"status": "Success", "ticket": ticket}
+
+@app.get("/api/maintenance")
+def get_maintenance_tickets():
+    return MAINTENANCE_DB
+# --- STEP 1.1: ADD MOCK DATA STORAGE FOR AUDITS ---
+AUDITS_DB = []
+
+# --- STEP 1.2: ADD THE AUDIT ENDPOINTS TO THE BOTTOM ---
+
+@app.post("/api/audits/start")
+def start_audit_cycle(department_id: int):
+    """Creates a new structured validation sweep cycle."""
+    new_audit = {
+        "id": len(AUDITS_DB) + 1,
+        "department_id": department_id,
+        "status": "Active", # Active or Closed
+        "discrepancies": 0,
+        "verified_count": 0
+    }
+    AUDITS_DB.append(new_audit)
+    return {"status": "Success", "audit": new_audit}
+
+@app.post("/api/audits/{audit_id}/verify")
+def verify_asset_status(audit_id: int, asset_id: int, asset_condition: str):
+    """Auditor labels an item: Verified, Missing, or Damaged."""
+    audit = next((a for a in AUDITS_DB if a["id"] == audit_id), None)
+    asset = next((asst for asst in ASSETS_DB if asst["id"] == asset_id), None)
+    
+    if not audit or not asset:
+        raise HTTPException(status_code=404, detail="Audit scope or Asset target not found")
+        
+    audit["verified_count"] += 1
+    
+    # If missing or damaged, it triggers an automatic discrepancy rule
+    if asset_condition in ["Missing", "Damaged"]:
+        audit["discrepancies"] += 1
+        asset["status"] = "Lost" if asset_condition == "Missing" else "Under Maintenance" # State transition rules
+        
+    return {"status": "Success", "asset_new_status": asset["status"]}
+
+@app.get("/api/audits")
+def get_audits():
+    return AUDITS_DB
