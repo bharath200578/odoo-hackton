@@ -132,6 +132,8 @@ def allocate_asset(req: AllocateRequest):
         "active": True
     }
     ALLOCATIONS_DB.append(new_allocation)
+    # ... inside @app.post("/api/allocations") right before the return statement:
+    log_activity(f"Asset ID {req.asset_id} successfully provisioned to Employee ID {req.employee_id}.")
     return {"status": "Success", "allocation": new_allocation}
 
 # --- RULE 3: OVERLAP VALIDATION (RESOURCE BOOKING) ---
@@ -268,3 +270,44 @@ def verify_asset_status(audit_id: int, asset_id: int, asset_condition: str):
 @app.get("/api/audits")
 def get_audits():
     return AUDITS_DB
+
+# --- ADD TO THE VERY BOTTOM OF main.py ---
+
+@app.get("/api/reports/summary")
+def get_analytics_summary():
+    """Generates real-time operational ERP trends and department metrics summaries."""
+    total_assets = len(ASSETS_DB)
+    allocated_count = len([a for a in ASSETS_DB if a["status"] == "Allocated"])
+    maintenance_count = len([a for a in ASSETS_DB if a["status"] == "Under Maintenance"])
+    
+    # Calculate simple utilization rates
+    utilization_rate = round((allocated_count / total_assets * 100), 1) if total_assets > 0 else 0.0
+    
+    return {
+        "utilization_rate": f"{utilization_rate}%",
+        "breakdown": {
+            "Allocated": allocated_count,
+            "Under Maintenance": maintenance_count,
+            "Available": len([a for a in ASSETS_DB if a["status"] == "Available"]),
+            "Lost/Missing": len([a for a in ASSETS_DB if a["status"] == "Lost"])
+        },
+        "system_health": "Optimal" if maintenance_count < (total_assets * 0.2) else "Attention Needed"
+    }
+# --- ADD TO THE VERY BOTTOM OF main.py ---
+
+NOTIFICATIONS_DB = [
+    {"id": 1, "message": "System Boot: AssetFlow ERP core engine initialized successfully.", "timestamp": "Just now"}
+]
+
+@app.get("/api/notifications")
+def get_notifications():
+    """Retrieves the automated real-time audit trail and system activity logs."""
+    return NOTIFICATIONS_DB
+
+# Helper function to inject new log entries automatically during actions
+def log_activity(message: str):
+    NOTIFICATIONS_DB.insert(0, {
+        "id": len(NOTIFICATIONS_DB) + 1,
+        "message": message,
+        "timestamp": "Just now"
+    })

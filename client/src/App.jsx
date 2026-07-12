@@ -7,6 +7,8 @@ function App() {
   const [error, setError] = useState('');
   const [audits, setAudits] = useState([]);
   const [selectedAudit, setSelectedAudit] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [notifications, setNotifications] = useState([]);
 
   const [allocationForm, setAllocationForm] = useState({ asset_id: '', employee_id: '', expected_return_date: '' });
   const [bookingForm, setBookingForm] = useState({ asset_id: '', employee_id: '', start_time: '', end_time: '' });
@@ -35,6 +37,15 @@ function App() {
       .then((data) => setTickets(data))
       .catch(() => console.log("Offline mode: maintenance server unavailable"));
 
+    fetch('http://127.0.0.1:8000/api/reports/summary')
+      .then((res) => res.json())
+      .then((data) => setAnalytics(data))
+      .catch(() => console.log("Offline mode: analytics summary unavailable"));
+
+    fetch('http://127.0.0.1:8000/api/notifications')
+      .then((res) => res.json())
+      .then((data) => setNotifications(data))
+      .catch(() => console.log("Offline mode: activity logs unavailable"));
     // Fetch Active Audit Sweep Cycles
     fetch('http://127.0.0.1:8000/api/audits')
       .then((res) => res.json())
@@ -94,7 +105,8 @@ function App() {
             { id: 'allocations', label: 'Allocations', icon: '🤝' },
             { id: 'bookings', label: 'Bookings', icon: '📅' },
             { id: 'maintenance', label: 'Maintenance', icon: '🛠️' },
-            { id: 'audits', label: 'Asset Audits', icon: '🔍' }
+            { id: 'audits', label: 'Asset Audits', icon: '🔍' },
+            { id: 'reports', label: 'Reports & Analytics', icon: '📈' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -160,6 +172,19 @@ function App() {
             <div style={{ marginBottom: '2.5rem' }}>
               <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a', margin: '0 0 0.25rem 0', letterSpacing: '-0.5px' }}>Enterprise Asset Registry</h1>
               <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Detailed tracking ledger of all company property hardware.</p>
+            </div>
+
+            {/* LIVE AUTOMATED AUDIT TRAIL BANNER */}
+            <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontSize: '1.1rem', fontWeight: '700' }}>🔔 Live Audit Trail & Activity Logs[cite: 3]</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {notifications.map(n => (
+                  <div key={n.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.9rem', color: '#334155', borderLeft: '4px solid #a26b93' }}>
+                    <span style={{ fontWeight: '600', minWidth: '70px', color: '#64748b' }}>{n.timestamp}</span>
+                    <span>{n.message}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -388,6 +413,42 @@ function App() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB 7: REPORTS & ANALYTICS VIEW PANEL */}
+        {currentTab === 'reports' && (
+          <div>
+            <div style={{ marginBottom: '2.5rem' }}>
+              <h1 style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a', margin: '0 0 0.25rem 0' }}>System Intelligence Reports</h1>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Automated data summary aggregation graphs and asset optimization indicators[cite: 3].</p>
+            </div>
+
+            {analytics ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                {/* UTILIZATION HEATMAP CARD */}
+                <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>Asset Utilization Trends[cite: 3]</h3>
+                  <div style={{ fontSize: '3rem', fontWeight: '800', color: '#714B67', marginBottom: '0.5rem' }}>{analytics.utilization_rate}</div>
+                  <p style={{ color: '#64748b', margin: 0, fontSize: '0.9rem' }}>Percentage of company inventory actively assigned out to operational units[cite: 3].</p>
+                </div>
+
+                {/* STATUS SUMMARY GRAPH CARD */}
+                <div style={{ backgroundColor: 'white', padding: '2.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                  <h3 style={{ margin: '0 0 1.5rem 0', color: '#1e293b' }}>Operational State Breakdowns</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {Object.entries(analytics.breakdown).map(([status, count]) => (
+                      <div key={status} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid #f1f5f9' }}>
+                        <span style={{ fontWeight: '600', color: '#475569' }}>{status}</span>
+                        <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.75rem', borderRadius: '6px', fontWeight: '700', color: '#1e293b' }}>{count} items</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: '#64748b', fontStyle: 'italic' }}>Loading dynamic intelligence data...</div>
+            )}
           </div>
         )}
 
